@@ -1,5 +1,8 @@
 const std = @import("std");
 
+// Embed runtime.js at compile time
+const runtime_js = @embedFile("./runtime.js");
+
 pub fn main() !void {
     const address = std.net.Address.parseIp("127.0.0.1", 8080) catch unreachable;
     var server = address.listen(.{
@@ -39,6 +42,12 @@ fn handleRequest(connection: std.net.Server.Connection) void {
     // Root path
     if (path.len == 1 and path[0] == '/') {
         serveFileWithReload(connection.stream, "public/index.html", "text/html");
+        return;
+    }
+
+    // Embedded runtime.js
+    if (pathMatch(path, "/runtime.js")) {
+        serveFile(connection.stream, runtime_js, "application/javascript");
         return;
     }
 
@@ -164,7 +173,8 @@ fn serveFile(stream: std.net.Stream, content: []const u8, mime: []const u8) void
 }
 
 fn getLatestModTime() i64 {
-    const files = [_][]const u8{ "public/index.html", "public/about.html", "public/styles.css", "public/custom.js", "src/runtime.js" };
+    // Removed runtime.js from this list since it's embedded
+    const files = [_][]const u8{ "public/index.html", "public/about.html", "public/styles.css", "public/custom.js" };
     var latest: i64 = 0;
     for (files) |file| {
         const mod = getFileModTime(file);

@@ -1,15 +1,24 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
+    const target = b.standardTargetOptions(.{});
+    const optimize = b.standardOptimizeOption(.{});
+
     const exe = b.addExecutable(.{
-        .name = "zessweb",
+        .name = "zig-hot-server",
         .root_source_file = b.path("src/main.zig"),
-        .target = b.standardTargetOptions(.{}),
-        .optimize = b.standardOptimizeOption(.{}),
+        .target = target,
+        .optimize = optimize,
     });
+
+    // Ensure `src/` is included for embedFile
+    exe.addIncludePath(b.path("src"));
+
     b.installArtifact(exe);
 
-    // zig build run will build, then run tinyweb from the build directory
     const run_cmd = b.addRunArtifact(exe);
+    run_cmd.step.dependOn(b.getInstallStep());
+    if (b.args) |args| run_cmd.addArgs(args);
+
     b.step("run", "Run the server").dependOn(&run_cmd.step);
 }
